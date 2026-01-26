@@ -45,9 +45,12 @@ public class Event {
     }
 
     public void validate() {
+        if (startsAt == null) {
+            throw new EventValidationException("startsAt is required");
+        }
         if (endsAt != null && !endsAt.isAfter(startsAt)) {
             throw new EventValidationException(
-                "endsAt must be after startsAt. startsAt: " + startsAt + ", endsAt: " + endsAt
+                    "endsAt must be after startsAt. startsAt: " + startsAt + ", endsAt: " + endsAt
             );
         }
     }

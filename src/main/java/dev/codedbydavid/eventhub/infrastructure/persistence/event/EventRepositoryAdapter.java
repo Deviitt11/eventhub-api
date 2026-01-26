@@ -1,6 +1,7 @@
 package dev.codedbydavid.eventhub.infrastructure.persistence.event;
 
 import dev.codedbydavid.eventhub.domain.event.Event;
+import dev.codedbydavid.eventhub.domain.event.EventNotFoundException;
 import dev.codedbydavid.eventhub.domain.event.EventRepository;
 import org.springframework.stereotype.Component;
 
@@ -19,15 +20,33 @@ public class EventRepositoryAdapter implements EventRepository {
 
     @Override
     public Event save(Event event) {
-        EventJpaEntity entity = toJpaEntity(event);
-        EventJpaEntity savedEntity = jpaRepository.save(entity);
-        return toDomainEntity(savedEntity);
+        // CREATE: let JPA generate the UUID
+        if (event.getId() == null) {
+            EventJpaEntity entity = new EventJpaEntity(
+                    null,
+                    event.getTitle(),
+                    event.getStartsAt(),
+                    event.getEndsAt(),
+                    event.getCreatedAt(),
+                    event.getUpdatedAt()
+            );
+            EventJpaEntity saved = jpaRepository.save(entity); // persist
+            return toDomainEntity(saved);
+        }
+
+        // UPDATE: must exist, otherwise 404
+        if (!jpaRepository.existsById(event.getId())) {
+            throw new EventNotFoundException(event.getId());
+        }
+
+        EventJpaEntity entity = toJpaEntity(event); // includes id
+        EventJpaEntity saved = jpaRepository.save(entity); // merge
+        return toDomainEntity(saved);
     }
 
     @Override
     public Optional<Event> findById(UUID id) {
-        return jpaRepository.findById(id)
-                .map(this::toDomainEntity);
+        return jpaRepository.findById(id).map(this::toDomainEntity);
     }
 
     @Override
@@ -43,6 +62,7 @@ public class EventRepositoryAdapter implements EventRepository {
     }
 
     private EventJpaEntity toJpaEntity(Event event) {
+        // For UPDATE we must keep the ID. For CREATE we bypass this method.
         return new EventJpaEntity(
                 event.getId(),
                 event.getTitle(),
@@ -64,4 +84,3 @@ public class EventRepositoryAdapter implements EventRepository {
                 .build();
     }
 }
-

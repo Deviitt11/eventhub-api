@@ -5,7 +5,7 @@ import dev.codedbydavid.eventhub.domain.event.EventRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+//import java.util.UUID;
 
 @Service
 public class CreateEventUseCase {
@@ -18,7 +18,7 @@ public class CreateEventUseCase {
     public Event execute(String title, LocalDateTime startsAt, LocalDateTime endsAt) {
         LocalDateTime now = LocalDateTime.now();
         Event event = Event.builder()
-                .id(UUID.randomUUID())
+                .id(null) // Let persistence generate the ID
                 .title(title)
                 .startsAt(startsAt)
                 .endsAt(endsAt)

@@ -1,26 +1,23 @@
 package dev.codedbydavid.eventhub.presentation.event.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.FutureOrPresent;
+//import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class UpdateEventRequest {
     @Size(max = 255, message = "Title must not exceed 255 characters")
     private String title;
 
-    @FutureOrPresent(message = "startsAt must be in the present or future")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime startsAt;
+    //@FutureOrPresent(message = "startsAt must be in the present or future")
+    private Instant startsAt;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
-    private LocalDateTime endsAt;
+    private Instant endsAt;
 
     public UpdateEventRequest() {
     }
 
-    public UpdateEventRequest(String title, LocalDateTime startsAt, LocalDateTime endsAt) {
+    public UpdateEventRequest(String title, Instant startsAt, Instant endsAt) {
         this.title = title;
         this.startsAt = startsAt;
         this.endsAt = endsAt;
@@ -34,19 +31,19 @@ public class UpdateEventRequest {
         this.title = title;
     }
 
-    public LocalDateTime getStartsAt() {
+    public Instant getStartsAt() {
         return startsAt;
     }
 
-    public void setStartsAt(LocalDateTime startsAt) {
+    public void setStartsAt(Instant startsAt) {
         this.startsAt = startsAt;
     }
 
-    public LocalDateTime getEndsAt() {
+    public Instant getEndsAt() {
         return endsAt;
     }
 
-    public void setEndsAt(LocalDateTime endsAt) {
+    public void setEndsAt(Instant endsAt) {
         this.endsAt = endsAt;
     }
 }
