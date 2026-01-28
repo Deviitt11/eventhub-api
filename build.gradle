@@ -82,10 +82,13 @@ tasks.register('integrationTest', Test) {
 	useJUnitPlatform()
 	shouldRunAfter tasks.test
 
-	// Force Testcontainers to use Docker Desktop engine pipe on Windows
-	//environment "DOCKER_HOST", "npipe:////./pipe/docker_engine"
-	// Optional: if your environment blocks Ryuk (only enable if you still get init errors)
-	// environment "TESTCONTAINERS_RYUK_DISABLED", "true"
+	def isWindows = System.getProperty("os.name").toLowerCase().contains("win")
+	def dockerHostAlreadySet = System.getenv("DOCKER_HOST") != null
+	def forceNpipe = "true".equalsIgnoreCase(System.getenv("EVENTHUB_FORCE_DOCKER_NPIPE"))
+
+	if (isWindows && !dockerHostAlreadySet && forceNpipe) {
+		environment "DOCKER_HOST", "npipe:////./pipe/docker_engine"
+	}
 }
 
 tasks.check {
