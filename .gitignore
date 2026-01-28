@@ -3,6 +3,7 @@ context/
 
 # Local env files
 .env*
+!.env.example
 .DS_Store
 
 HELP.md
