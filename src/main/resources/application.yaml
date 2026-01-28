@@ -38,3 +38,14 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
+
+# Expose health endpoint (production-minded)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true

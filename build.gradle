@@ -67,6 +67,9 @@ dependencies {
 	// Integration Test deps (explicit to avoid missing test-autoconfigure on the integrationTest classpath)
 	integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
 
+	// Dependency for SB Actuator (Docker/Compose clean healthchecks)
+	implementation "org.springframework.boot:spring-boot-starter-actuator"
+
 }
 
 tasks.register('integrationTest', Test) {
