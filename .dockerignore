@@ -1,0 +1,22 @@
+# Gradle / build outputs
+.gradle
+build
+
+# IDEs
+.idea
+.vscode
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+
+# Docs / misc
+*.md
