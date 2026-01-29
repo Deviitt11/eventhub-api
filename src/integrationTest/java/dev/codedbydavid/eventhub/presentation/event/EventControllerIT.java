@@ -14,7 +14,7 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer; // updated import
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -25,13 +25,17 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+import static org.hamcrest.Matchers.*;
+
+import dev.codedbydavid.eventhub.infrastructure.config.CorrelationIdFilter;
+
 @Testcontainers
 @ActiveProfiles("test")
 @SpringBootTest(classes = EventHubApiApplication.class, webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 class EventControllerIT {
 
     @Container
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
+    static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine")
             .withDatabaseName("eventhub")
             .withUsername("eventhub")
             .withPassword("eventhub");
@@ -43,7 +47,6 @@ class EventControllerIT {
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
     }
 
     @Autowired
@@ -52,25 +55,31 @@ class EventControllerIT {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private CorrelationIdFilter correlationIdFilter;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        this.mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        this.mockMvc = MockMvcBuilders
+                .webAppContextSetup(webApplicationContext)
+                .addFilters(correlationIdFilter)
+                .build();
     }
 
     @Test
     void crud_happy_path() throws Exception {
-        Instant startsAt = Instant.parse("2026-01-27T10:00:00Z");
-        Instant endsAt = Instant.parse("2026-01-27T11:00:00Z");
+        Instant startsAt = Instant.now().plusSeconds(3600);
+        Instant endsAt = startsAt.plusSeconds(3600);
 
         String createJson = """
-		{
-			"title": "My Event",
-			"startsAt": "%s",
-			"endsAt": "%s"
-		}
-		""".formatted(startsAt.toString(), endsAt.toString());
+	    {
+		    "title": "My Event",
+		    "startsAt": "%s",
+		    "endsAt": "%s"
+	    }
+	    """.formatted(startsAt.toString(), endsAt.toString());
 
         String postBody = mockMvc.perform(post("/api/v1/events")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -95,13 +104,15 @@ class EventControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
 
+        Instant updatedEndsAt = endsAt.plusSeconds(3600);
+
         String updateJson = """
-		{
-			"title": "My Event Updated",
-			"startsAt": "%s",
-			"endsAt": "%s"
-		}
-		""".formatted(startsAt.toString(), Instant.parse("2026-01-27T12:00:00Z").toString());
+        {
+	        "title": "My Event Updated",
+	        "startsAt": "%s",
+	        "endsAt": "%s"
+        }
+        """.formatted(startsAt.toString(), updatedEndsAt.toString());
 
         mockMvc.perform(put("/api/v1/events/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -121,11 +132,13 @@ class EventControllerIT {
 
     @Test
     void validation_missing_title_returns_standard_error_payload() throws Exception {
+        Instant startsAt = Instant.now().plusSeconds(3600);
+
         String json = """
-		{
-			"startsAt": "2026-01-27T10:00:00Z"
-		}
-		""";
+        {
+	        "startsAt": "%s"
+        }
+        """.formatted(startsAt.toString());
 
         mockMvc.perform(post("/api/v1/events")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -156,13 +169,15 @@ class EventControllerIT {
 
     @Test
     void domain_validation_endsAt_not_after_startsAt_returns_400() throws Exception {
+        Instant startsAt = Instant.now().plusSeconds(3600);
+
         String json = """
-		{
-			"title": "Bad Event",
-			"startsAt": "2026-01-27T10:00:00Z",
-			"endsAt": "2026-01-27T10:00:00Z"
-		}
-		""";
+	    {
+		    "title": "Bad Event",
+		    "startsAt": "%s",
+		    "endsAt": "%s"
+	    }
+	    """.formatted(startsAt.toString(), startsAt.toString());
 
         mockMvc.perform(post("/api/v1/events")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -172,5 +187,21 @@ class EventControllerIT {
                 .andExpect(jsonPath("$.message").value("Event validation failed"))
                 .andExpect(jsonPath("$.details").isNotEmpty())
                 .andExpect(jsonPath("$.path").value("/api/v1/events"));
+    }
+
+    @Test
+    void correlation_id_is_added_when_missing() throws Exception {
+        mockMvc.perform(get("/api/v1/events"))
+                .andExpect(status().isOk())
+                .andExpect(header().exists("X-Correlation-Id"))
+                .andExpect(header().string("X-Correlation-Id", not(emptyOrNullString()))); // updated
+    }
+
+    @Test
+    void correlation_id_is_echoed_when_provided() throws Exception {
+        mockMvc.perform(get("/api/v1/events")
+                        .header("X-Correlation-Id", "demo-123"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("X-Correlation-Id", "demo-123"));
     }
 }

@@ -72,6 +72,8 @@ dependencies {
 	// Postgres driver
 	runtimeOnly "org.postgresql:postgresql"
 
+	integrationTestImplementation "org.springframework.boot:spring-boot-test-autoconfigure"
+
 }
 
 tasks.register('integrationTest', Test) {
@@ -101,4 +103,8 @@ tasks.named('test') {
 
 tasks.named('processIntegrationTestResources', Copy) {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named('compileIntegrationTestJava', JavaCompile) {
+	options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
 }
