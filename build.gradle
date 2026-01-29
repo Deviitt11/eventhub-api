@@ -48,7 +48,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
-	runtimeOnly 'org.postgresql:postgresql'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
@@ -67,6 +66,12 @@ dependencies {
 	// Integration Test deps (explicit to avoid missing test-autoconfigure on the integrationTest classpath)
 	integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
 
+	// Dependency for SB Actuator (Docker/Compose clean healthchecks)
+	implementation "org.springframework.boot:spring-boot-starter-actuator"
+
+	// Postgres driver
+	runtimeOnly "org.postgresql:postgresql"
+
 }
 
 tasks.register('integrationTest', Test) {
@@ -77,10 +82,13 @@ tasks.register('integrationTest', Test) {
 	useJUnitPlatform()
 	shouldRunAfter tasks.test
 
-	// Force Testcontainers to use Docker Desktop engine pipe on Windows
-	environment "DOCKER_HOST", "npipe:////./pipe/docker_engine"
-	// Optional: if your environment blocks Ryuk (only enable if you still get init errors)
-	// environment "TESTCONTAINERS_RYUK_DISABLED", "true"
+	def isWindows = System.getProperty("os.name").toLowerCase().contains("win")
+	def dockerHostAlreadySet = System.getenv("DOCKER_HOST") != null
+	def forceNpipe = "true".equalsIgnoreCase(System.getenv("EVENTHUB_FORCE_DOCKER_NPIPE"))
+
+	if (isWindows && !dockerHostAlreadySet && forceNpipe) {
+		environment "DOCKER_HOST", "npipe:////./pipe/docker_engine"
+	}
 }
 
 tasks.check {

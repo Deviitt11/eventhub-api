@@ -1,6 +1,6 @@
 # EventHub API
 
-[![CI](https://github.com/<Deviitt11>/<eventhub-api>/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/<Deviitt11>/<eventhub-api>/actions/workflows/ci.yml)
+[![CI](https://github.com/Deviitt11/eventhub-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Deviitt11/eventhub-api/actions/workflows/ci.yml)
 ![Java](https://img.shields.io/badge/Java-21-informational)
 ![Gradle](https://img.shields.io/badge/Gradle-9.3.0-informational)
 ![License](https://img.shields.io/badge/License-MIT-success)
@@ -66,44 +66,63 @@ Once the app is running, Swagger UI is available at:
 ## Getting Started
 
 ### Prerequisites
-- Java 21 installed (or a compatible toolchain setup)
-- Docker Desktop (required **only** for integration tests with Testcontainers)
+- Docker + Docker Compose (recommended for running the app with PostgreSQL via Compose)
+- Java 21 (optional, only needed if you want to run without Docker)
 
-### Run locally
+- Docker Compose runs the API with PostgreSQL.
+- Running without Docker defaults to H2 (see application.yml).
+
+### Run with Docker (recommended)
 ```bash
-./gradlew bootRun
+docker compose up --build
 ```
 
-App will start on:
+### Useful URLs
 
-http://localhost:8080
+- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- OpenAPI JSON: http://localhost:8080/api-docs
+- Health: http://localhost:8080/actuator/health
+
+### Stop and cleanup
+```bash
+docker compose down
+```
+
+If you also want to remove volumes (database data):
+```bash
+docker compose down -v
+```
 
 ## Running Tests
 
-### Unit tests (fast)
+### Unit tests
 ```bash
 ./gradlew test
 ```
 
 ### Integration tests (PostgreSQL via Testcontainers)
 ```bash
-./gradlew test
+./gradlew integrationTest
 ```
 
-On Windows, make sure Docker Desktop is running.
-If you ever need it, you can set:
-- DOCKER_HOST=npipe:////./pipe/docker_engine
+### Verify all (unit + integration)
+```bash
+./gradlew check
+```
+
+Notes:
+- Docker must be running for integrationTest / check. 
+- On Windows, Testcontainers should auto-detect Docker Desktop. If you ever need to force it:
+  - DOCKER_HOST=npipe:////./pipe/docker_engine
 
 ## CI
 
 GitHub Actions runs:
-- ./gradlew test
-- ./gradlew integrationTest
+- `./gradlew check`
 
 on:
-
-- pull requests to develop and main 
-- pushes to develop
+- pull requests to `develop` and `main`
+- pushes to `develop` and `main`
 
 ## Project Structure (high level)
 - src/main/java — application code 

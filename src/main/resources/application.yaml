@@ -14,10 +14,6 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.H2Dialect
 
 # To use PostgreSQL instead of H2, uncomment and configure:
 # spring:
@@ -38,3 +34,14 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
     enabled: true
+
+# Expose health endpoint (production-minded)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
