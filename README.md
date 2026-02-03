@@ -24,6 +24,18 @@ This project is built as a solid backend slice you can ship, extend, and trust:
 
 ---
 
+## Docs
+
+High-level documentation for reviewers and contributors:
+
+- Architecture: `docs/architecture.md`
+- Security: `docs/security.md`
+- Requirements: `docs/requirements.md`
+- PRD / Scope: `docs/prd.md`
+- ADRs: `docs/adr/` (e.g., `docs/adr/0001-observability-baseline.md`)
+
+---
+
 ## Tech Stack
 
 - Java 21
@@ -69,6 +81,8 @@ This project includes minimal observability defaults to support safe debugging a
 
 - **Actuator base:** `/actuator` (e.g., `GET /actuator/health`)
 - **Correlation ID:** requests accept `X-Correlation-Id`. If missing, the API generates one and echoes it back in the response.
+
+For design decisions, see: `docs/adr/0001-observability-baseline.md`.
 
 ---
 
