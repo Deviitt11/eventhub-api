@@ -45,7 +45,7 @@ info:
 management:
   info:
     env:
-      enabled: true
+      enabled: false
 
   endpoints:
     web:

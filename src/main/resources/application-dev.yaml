@@ -1,4 +1,8 @@
 management:
+  info:
+    env:
+      enabled: true
+
   endpoint:
     health:
       # Developer-friendly visibility (local only)
