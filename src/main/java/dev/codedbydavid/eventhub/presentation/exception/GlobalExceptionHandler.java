@@ -84,18 +84,32 @@ public class GlobalExceptionHandler {
 
         @ExceptionHandler(HttpMessageNotReadableException.class)
         public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
-                        HttpMessageNotReadableException ex, HttpServletRequest request) {
-                String details = ex.getMessage();
-                if (details != null && details.contains("JSON parse error")) {
-                        details = "Invalid JSON format or date format. Expected ISO-8601 format (e.g., 2026-01-26T19:46:49.544Z)";
+                HttpMessageNotReadableException ex,
+                HttpServletRequest request
+        ) {
+                // Client-safe message (no internals)
+                String details = "Invalid JSON format or date format. Expected ISO-8601 format (e.g., 2026-01-26T19:46:49.544Z)";
+
+                // Internal-only detail for debugging (includes parsing hints, stack causes, etc.)
+                Throwable rootCause = ex.getMostSpecificCause();
+                String internalMessage = rootCause.getMessage();
+
+                if (internalMessage == null || internalMessage.isBlank()) {
+                        internalMessage = rootCause.getClass().getSimpleName();
                 }
 
+                log.warn("Invalid request body for {} {}: {}",
+                        request.getMethod(),
+                        request.getRequestURI(),
+                        internalMessage);
+
                 ErrorResponse errorResponse = new ErrorResponse(
-                                "INVALID_REQUEST",
-                                "Request body is invalid or malformed",
-                                details,
-                                Instant.now(),
-                                request.getRequestURI());
+                        "INVALID_REQUEST",
+                        "Request body is invalid or malformed",
+                        details,
+                        Instant.now(),
+                        request.getRequestURI()
+                );
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
         }
