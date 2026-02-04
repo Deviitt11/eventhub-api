@@ -35,13 +35,25 @@ springdoc:
     path: /swagger-ui.html
     enabled: true
 
-# Expose health endpoint (production-minded)
+# Minimal app info for /actuator/info
+info:
+  app:
+    name: ${spring.application.name}
+    version: ${APP_VERSION:dev}
+
+# Observability baseline (secure-by-default)
 management:
+  info:
+    env:
+      enabled: false
+
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info,metrics
   endpoint:
     health:
       probes:
         enabled: true
+      # Secure-by-default: do not leak details by default
+      show-details: never

@@ -24,6 +24,18 @@ This project is built as a solid backend slice you can ship, extend, and trust:
 
 ---
 
+## Docs
+
+High-level documentation for reviewers and contributors:
+
+- Architecture: `docs/architecture.md`
+- Security: `docs/security.md`
+- Requirements: `docs/requirements.md`
+- PRD / Scope: `docs/prd.md`
+- ADRs: `docs/adr/` (e.g., `docs/adr/0001-observability-baseline.md`)
+
+---
+
 ## Tech Stack
 
 - Java 21
@@ -61,6 +73,53 @@ Once the app is running, Swagger UI is available at:
 - **Swagger UI:** `http://localhost:8080/swagger-ui/index.html`
 - **OpenAPI JSON:** `http://localhost:8080/api-docs`
 
+---
+
+## Observability
+
+This project includes minimal observability defaults to support safe debugging and consistent request tracing.
+
+- **Actuator base:** `/actuator` (e.g., `GET /actuator/health`)
+- **Correlation ID:** requests accept `X-Correlation-Id`. If missing, the API generates one and echoes it back in the response.
+
+For design decisions, see: `docs/adr/0001-observability-baseline.md`.
+
+---
+
+## Demo (curl)
+
+### 1) Healthcheck
+```bash
+curl -i http://localhost:8080/actuator/health
+```
+
+### 2) Correlation ID (echo when provided)
+```bash
+curl -i -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events
+```
+
+### 3) Correlation ID (generated when missing)
+```bash
+curl -i http://localhost:8080/api/v1/events
+```
+
+### 4) Minimal E2E (create → fetch → delete)
+```bash
+# create
+curl -s -X POST http://localhost:8080/api/v1/events \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: demo-123" \
+  -d '{
+    "title": "My Event",
+    "startsAt": "2030-01-01T10:00:00Z",
+    "endsAt": "2030-01-01T11:00:00Z"
+  }'
+
+# replace <id> from the response
+curl -i -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/<id>
+
+curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/<id>
+```
 ---
 
 ## Getting Started
