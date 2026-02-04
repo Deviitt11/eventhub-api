@@ -3,7 +3,6 @@
 [![CI](https://github.com/Deviitt11/eventhub-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Deviitt11/eventhub-api/actions/workflows/ci.yml)
 ![Java](https://img.shields.io/badge/Java-21-informational)
 ![Gradle](https://img.shields.io/badge/Gradle-9.3.0-informational)
-![License](https://img.shields.io/badge/License-MIT-success)
 
 EventHub is a backend-first REST API for creating and managing events with production-minded defaults: validation, consistent error contracts, OpenAPI docs, and a clean path to real integration testing.
 
@@ -131,6 +130,15 @@ curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/e
 - Docker Compose runs the API with PostgreSQL.
 - Running without Docker defaults to H2 (see application.yml).
 
+### Environment
+Copy `.env.example` to `.env` and adjust values if needed:
+
+```bash
+cp .env.example .env
+```
+
+On Windows PowerShell, `cp` works as well.
+
 ### Run with Docker (recommended)
 ```bash
 docker compose up --build
@@ -151,6 +159,8 @@ If you also want to remove volumes (database data):
 ```bash
 docker compose down -v
 ```
+
+---
 
 ## Running Tests
 
@@ -174,6 +184,8 @@ Notes:
 - On Windows, Testcontainers should auto-detect Docker Desktop. If you ever need to force it:
   - DOCKER_HOST=npipe:////./pipe/docker_engine
 
+---
+
 ## CI
 
 GitHub Actions runs:
@@ -183,11 +195,15 @@ on:
 - pull requests to `develop` and `main`
 - pushes to `develop` and `main`
 
+---
+
 ## Project Structure (high level)
 - src/main/java — application code 
 - src/test/java — unit tests 
 - src/integrationTest/java — integration tests 
 - src/integrationTest/resources — integration test config
+
+---
 
 ## Roadmap (high-level)
 
@@ -198,8 +214,8 @@ Planned next steps (as the project evolves):
 - Event-driven patterns (outbox, messaging)
 - Hardening (rate limiting, idempotency, retries)
 
+---
+
 ## License
 
-This project is currently shared for learning and portfolio purposes.
-(Choose a license later if you plan to open-source it publicly.)
-
+See `LICENSE`.
