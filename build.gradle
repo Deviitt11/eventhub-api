@@ -20,30 +20,91 @@ repositories {
 
 dependencyManagement {
 	imports {
-		mavenBom "org.testcontainers:testcontainers-bom:1.20.4"
+		mavenBom "org.testcontainers:testcontainers-bom:2.0.3"
 	}
+}
+
+/*
+ * Integration Test source set + task (configs must exist before dependencies can use them)
+ */
+sourceSets {
+	integrationTest {
+		java.setSrcDirs(['src/integrationTest/java'])
+		resources.setSrcDirs(['src/integrationTest/resources'])
+
+		// IMPORTANT: make integrationTest see main classes/resources
+		compileClasspath += sourceSets.main.output
+		runtimeClasspath += sourceSets.main.output
+	}
+}
+
+configurations {
+	integrationTestImplementation.extendsFrom testImplementation
+	integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	runtimeOnly 'org.postgresql:postgresql'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.7.0'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
-	// Testcontainers (force versions via BOM)
-	testImplementation platform('org.testcontainers:testcontainers-bom:1.20.4')
-	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
-	testImplementation 'org.testcontainers:junit-jupiter'
-	testImplementation 'org.testcontainers:postgresql'
+	// Testcontainers (aligned to BOM 2.0.3)
+	testImplementation 'org.testcontainers:testcontainers'
+	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+	testImplementation 'org.testcontainers:testcontainers-postgresql'
 
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 	testRuntimeOnly 'com.h2database:h2'
+	
+	// H2 for local development (optional, can use PostgreSQL instead)
+	runtimeOnly 'com.h2database:h2'
 
+	// Integration Test deps (explicit to avoid missing test-autoconfigure on the integrationTest classpath)
+	integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+	// Dependency for SB Actuator (Docker/Compose clean healthchecks)
+	implementation "org.springframework.boot:spring-boot-starter-actuator"
+
+	// Postgres driver
+	runtimeOnly "org.postgresql:postgresql"
+
+	integrationTestImplementation "org.springframework.boot:spring-boot-test-autoconfigure"
+
+}
+
+tasks.register('integrationTest', Test) {
+	description = 'Runs integration tests.'
+	group = 'verification'
+	testClassesDirs = sourceSets.integrationTest.output.classesDirs
+	classpath = sourceSets.integrationTest.runtimeClasspath
+	useJUnitPlatform()
+	shouldRunAfter tasks.test
+
+	def isWindows = System.getProperty("os.name").toLowerCase().contains("win")
+	def dockerHostAlreadySet = System.getenv("DOCKER_HOST") != null
+	def forceNpipe = "true".equalsIgnoreCase(System.getenv("EVENTHUB_FORCE_DOCKER_NPIPE"))
+
+	if (isWindows && !dockerHostAlreadySet && forceNpipe) {
+		environment "DOCKER_HOST", "npipe:////./pipe/docker_engine"
+	}
+}
+
+tasks.check {
+	dependsOn tasks.integrationTest
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.named('processIntegrationTestResources', Copy) {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.named('compileIntegrationTestJava', JavaCompile) {
+	options.compilerArgs += ['-Xlint:deprecation', '-Xlint:unchecked']
 }

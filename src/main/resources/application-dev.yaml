@@ -1,0 +1,15 @@
+management:
+  info:
+    env:
+      enabled: true
+
+  endpoint:
+    health:
+      # Developer-friendly visibility (local only)
+      show-details: always
+
+  # Optional: only relevant if a Prometheus registry is added later.
+  # endpoints:
+  #   web:
+  #     exposure:
+  #       include: health,info,metrics,prometheus

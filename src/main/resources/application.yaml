@@ -1,3 +1,59 @@
 spring:
   application:
     name: eventhub-api
+  
+  # Database configuration (H2 for local development)
+  datasource:
+    url: jdbc:h2:mem:eventhubdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  
+  # JPA/Hibernate configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+# To use PostgreSQL instead of H2, uncomment and configure:
+# spring:
+#   datasource:
+#     url: jdbc:postgresql://localhost:5432/eventhub
+#     driver-class-name: org.postgresql.Driver
+#     username: your_username
+#     password: your_password
+#   jpa:
+#     properties:
+#       hibernate:
+#         dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# OpenAPI/Swagger configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+
+# Minimal app info for /actuator/info
+info:
+  app:
+    name: ${spring.application.name}
+    version: ${APP_VERSION:dev}
+
+# Observability baseline (secure-by-default)
+management:
+  info:
+    env:
+      enabled: false
+
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      # Secure-by-default: do not leak details by default
+      show-details: never

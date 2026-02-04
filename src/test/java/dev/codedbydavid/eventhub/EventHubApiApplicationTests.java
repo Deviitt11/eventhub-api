@@ -6,7 +6,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 //@Import(TestcontainersConfiguration.class)
 @SpringBootTest
-class EventhubApiApplicationTests {
+class EventHubApiApplicationTests {
 
 	@Test
 	void contextLoads() {
