@@ -43,6 +43,7 @@ High-level documentation for reviewers and contributors:
 - PostgreSQL (runtime + Testcontainers for integration tests)
 - Springdoc OpenAPI (Swagger UI)
 - Gradle
+- Flyway (schema migrations)
 
 ---
 
@@ -124,11 +125,8 @@ curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/e
 ## Getting Started
 
 ### Prerequisites
-- Docker + Docker Compose (recommended for running the app with PostgreSQL via Compose)
-- Java 21 (optional, only needed if you want to run without Docker)
-
-- Docker Compose runs the API with PostgreSQL.
-- Running without Docker defaults to H2 (see application.yml).
+- Docker + Docker Compose (recommended for local development with PostgreSQL)
+- Java 21 (only needed if you want to run the API locally outside Docker)
 
 ### Environment
 Copy `.env.example` to `.env` and adjust values if needed:
@@ -139,10 +137,37 @@ cp .env.example .env
 
 On Windows PowerShell, `cp` works as well.
 
-### Run with Docker (recommended)
+---
+
+### Local dev (recommended): DB in Docker + API on host (dev profile)
+
 ```bash
-docker compose up --build
+docker compose up -d db
+./gradlew bootRun --args="--spring.profiles.active=dev"
 ```
+
+Verify migrations / tables:
+
+```bash
+docker compose exec db psql -U eventhub -d eventhub -c "\dt"
+docker compose exec db psql -U eventhub -d eventhub -c "\d events"
+```
+
+Check inserted rows:
+
+```bash
+docker compose exec db psql -U eventhub -d eventhub -c "select id, title, starts_at, ends_at, created_at from events order by created_at desc limit 20;"
+```
+
+---
+
+### Full Docker (API + DB)
+```bash
+docker compose --profile full up -d --build
+docker compose logs -f api
+```
+
+---
 
 ### Useful URLs
 
