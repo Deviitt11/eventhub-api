@@ -1,34 +1,30 @@
 services:
   db:
     image: postgres:16
-    container_name: eventhub-db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-eventhub}
+      POSTGRES_USER: ${POSTGRES_USER:-eventhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventhub}
     ports:
       - "5432:5432"
     volumes:
       - eventhub_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-eventhub} -d ${POSTGRES_DB:-eventhub}"]
       interval: 5s
       timeout: 5s
       retries: 10
-    networks:
-      - eventhub-net
 
   api:
+    profiles: ["full"]
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: eventhub-api
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_DB: ${POSTGRES_DB:-eventhub}
+      POSTGRES_USER: ${POSTGRES_USER:-eventhub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eventhub}
     ports:
       - "8080:8080"
     depends_on:
@@ -39,12 +35,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 15
-    networks:
-      - eventhub-net
 
 volumes:
   eventhub_db_data:
-
-networks:
-  eventhub-net:
-    driver: bridge

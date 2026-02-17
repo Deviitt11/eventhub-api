@@ -58,11 +58,6 @@ dependencies {
 
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-	testRuntimeOnly 'com.h2database:h2'
-	
-	// H2 for local development (optional, can use PostgreSQL instead)
-	runtimeOnly 'com.h2database:h2'
-
 	// Integration Test deps (explicit to avoid missing test-autoconfigure on the integrationTest classpath)
 	integrationTestImplementation 'org.springframework.boot:spring-boot-starter-test'
 
@@ -72,8 +67,16 @@ dependencies {
 	// Postgres driver
 	runtimeOnly "org.postgresql:postgresql"
 
+	// Autoconfigure
 	integrationTestImplementation "org.springframework.boot:spring-boot-test-autoconfigure"
 
+	// Flyway migrations dependencies
+	implementation("org.flywaydb:flyway-core")
+	implementation("org.flywaydb:flyway-database-postgresql")
+	implementation "org.springframework.boot:spring-boot-starter-flyway"
+
+	// Ensures DataSource/JDBC infrastructure is present -> Flyway auto-config is reliable
+	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 }
 
 tasks.register('integrationTest', Test) {
