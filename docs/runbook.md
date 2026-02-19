@@ -1,5 +1,7 @@
 # Runbook (host + compose)
 
+**Windows PowerShell note:** `curl` is an alias for `Invoke-WebRequest`. Use `curl.exe` or `Invoke-RestMethod`.
+
 Goal: verify end-to-end (Swagger/curl) and prove Flyway-managed persistence.
 DoD: step-by-step commands documented + DB verification queries.
 
@@ -43,17 +45,17 @@ curl -s -X POST http://localhost:8080/api/v1/events \
 		"endsAt": "2030-01-01T11:00:00Z"
 	}'
 
-# Copy the "id" from the JSON response and set it here
-export EVENT_ID="<id>"
+# Copy the "id" from the JSON response and reuse it in the next commands:
+# <id>
 
 # List
 curl -fsS -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events
 
 # Get by id
-curl -fsS -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/$EVENT_ID
+curl -fsS -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/<id>
 
 # Update
-curl -s -X PUT http://localhost:8080/api/v1/events/$EVENT_ID \
+curl -s -X PUT http://localhost:8080/api/v1/events/<id> \
 	-H "Content-Type: application/json" \
 	-H "X-Correlation-Id: demo-123" \
 	-d '{
@@ -63,24 +65,22 @@ curl -s -X PUT http://localhost:8080/api/v1/events/$EVENT_ID \
 	}'
 
 # Delete
-curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/$EVENT_ID
+curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/<id>
 ```
 
 ---
 
 ## B) All Docker (API + DB via Compose)
 
-The _api_ service is under _profiles: ["full"]_.
-
 ```bash
-docker compose --profile full up -d --build
+docker compose up -d --build
 docker compose logs -f api
 ```
 
 Smoke:
 
 ```bash
-curl -fsS http://localhost:8080/actuator/health
+curl.exe -fsS http://localhost:8080/actuator/health
 ```
 
 ---
