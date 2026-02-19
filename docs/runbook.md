@@ -124,6 +124,11 @@ docker compose exec db psql -U eventhub -d eventhub -c "select id, title, starts
 ---
 
 ## E) Tests
+
+**Notes**:
+- `./gradlew test` runs fast unit tests using **H2 in-memory** (no Docker required).
+- `./gradlew integrationTest` runs against **PostgreSQL Testcontainers** (Docker required).
+
 ```bash
 ./gradlew test
 ./gradlew integrationTest
