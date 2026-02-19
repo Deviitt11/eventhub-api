@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @Testcontainers
-@ActiveProfiles("test")
+@ActiveProfiles("it")
 @SpringBootTest(classes = EventHubApiApplication.class, webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 class EventControllerIT {
 

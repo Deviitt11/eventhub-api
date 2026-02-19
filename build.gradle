@@ -77,6 +77,9 @@ dependencies {
 
 	// Ensures DataSource/JDBC infrastructure is present -> Flyway auto-config is reliable
 	implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+
+	// For GitHub Actions run test
+	testRuntimeOnly("com.h2database:h2")
 }
 
 tasks.register('integrationTest', Test) {
