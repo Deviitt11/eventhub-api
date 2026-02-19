@@ -41,13 +41,15 @@ A single error contract is used for all endpoints:
 
 ## Persistence Strategy
 - **Runtime DB target:** PostgreSQL
-- **Unit tests:** H2 in-memory using a dedicated test profile/config
+- **Schema management:** Flyway migrations are the source of truth
+- **Hibernate DDL:** `ddl-auto=validate` (detect drift, no runtime DDL)
+- **Local dev:** run Postgres via Docker Compose and start the API with `dev` profile
 - **Integration tests:** PostgreSQL via Testcontainers
 
 ## Testing Strategy
 - **Unit tests**
 	- Domain rules and application use cases
-	- Fast, no Spring context required
+	- Fast, no Spring context required (where possible)
 - **Integration tests**
 	- Controller + repository + database (Testcontainers)
 	- Validate critical flows and the standardized error contract

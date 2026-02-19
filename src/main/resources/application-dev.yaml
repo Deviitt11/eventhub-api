@@ -1,15 +1,15 @@
-management:
-  info:
-    env:
-      enabled: true
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB:eventhub}
+    username: ${POSTGRES_USER:eventhub}
+    password: ${POSTGRES_PASSWORD:eventhub}
 
+management:
   endpoint:
     health:
-      # Developer-friendly visibility (local only)
       show-details: always
 
-  # Optional: only relevant if a Prometheus registry is added later.
-  # endpoints:
-  #   web:
-  #     exposure:
-  #       include: health,info,metrics,prometheus
+logging:
+  level:
+    org.flywaydb: DEBUG
+    org.springframework.boot.autoconfigure.flyway: DEBUG
