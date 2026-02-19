@@ -40,10 +40,11 @@ A single error contract is used for all endpoints:
 	- **409** conflicts (e.g., unique constraints) when applicable
 
 ## Persistence Strategy
-- **Runtime DB target:** PostgreSQL
+- **Runtime DB target:** PostgreSQL (profiles `dev` / `docker`)
 - **Schema management:** Flyway migrations are the source of truth
 - **Hibernate DDL:** `ddl-auto=validate` (detect drift, no runtime DDL)
 - **Local dev:** run Postgres via Docker Compose and start the API with `dev` profile
+- **Unit tests:** H2 in-memory (test scope only)
 - **Integration tests:** PostgreSQL via Testcontainers
 
 ## Testing Strategy
