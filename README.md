@@ -40,7 +40,8 @@ High-level documentation for reviewers and contributors:
 - Java 21
 - Spring Boot
 - Spring Web + Validation + Data JPA
-- PostgreSQL (runtime + Testcontainers for integration tests)
+- PostgreSQL (runtime; Testcontainers for integration tests)
+- H2 (unit tests only)
 - Springdoc OpenAPI (Swagger UI)
 - Gradle
 - Flyway (schema migrations)
@@ -139,12 +140,13 @@ On Windows PowerShell, `cp` works as well.
 
 ---
 
-### Local dev (recommended): DB in Docker + API on host (dev profile)
+### Local dev (recommended): PostgreSQL in Docker + API on host (dev profile)
 
 ```bash
 docker compose up -d db
 ./gradlew bootRun --args="--spring.profiles.active=dev"
 ```
+**Note**: The default runtime is PostgreSQL via profiles (`dev` / `docker`). H2 is used only for unit tests.
 
 Verify migrations / tables:
 
@@ -193,6 +195,9 @@ docker compose down -v
 ```bash
 ./gradlew test
 ```
+**Notes**:
+- Unit tests use an in-memory H2 datasource (test scope only).
+- Integration tests run against PostgreSQL via Testcontainers.
 
 ### Integration tests (PostgreSQL via Testcontainers)
 ```bash
