@@ -239,6 +239,97 @@ class EventControllerIT {
                 .andExpect(header().string("X-Correlation-Id", "demo-123"));
     }
 
+    @Test
+    void create_duplicate_event_returns_409_conflict() throws Exception {
+        Instant startsAt = Instant.now().plusSeconds(3600);
+        Instant endsAt = startsAt.plusSeconds(3600);
+
+        String json = """
+		{
+			"title": "Dup Event",
+			"startsAt": "%s",
+			"endsAt": "%s"
+		}
+		""".formatted(startsAt.toString(), endsAt.toString());
+
+        // First create OK
+        mockMvc.perform(post("/api/v1/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated());
+
+        // Second create with same (title, startsAt) => 409
+        mockMvc.perform(post("/api/v1/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Resource conflict"))
+                .andExpect(jsonPath("$.details").isNotEmpty())
+                .andExpect(jsonPath("$.path").value("/api/v1/events"));
+    }
+
+    @Test
+    void update_to_collide_with_existing_event_returns_409_conflict() throws Exception {
+        Instant startsAtA = Instant.now().plusSeconds(3600);
+        Instant endsAtA = startsAtA.plusSeconds(3600);
+
+        Instant startsAtB = startsAtA.plusSeconds(7200);
+        Instant endsAtB = startsAtB.plusSeconds(3600);
+
+        String createA = """
+		{
+			"title": "Event A",
+			"startsAt": "%s",
+			"endsAt": "%s"
+		}
+		""".formatted(startsAtA.toString(), endsAtA.toString());
+
+        String createB = """
+		{
+			"title": "Event B",
+			"startsAt": "%s",
+			"endsAt": "%s"
+		}
+		""".formatted(startsAtB.toString(), endsAtB.toString());
+
+        String bodyA = mockMvc.perform(post("/api/v1/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createA))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String bodyB = mockMvc.perform(post("/api/v1/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(createB))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        UUID idB = UUID.fromString(objectMapper.readTree(bodyB).get("id").asText());
+
+        // Try to update B to match A's (title, startsAt) => 409
+        String collideUpdate = """
+		{
+			"title": "Event A",
+			"startsAt": "%s",
+			"endsAt": "%s"
+		}
+		""".formatted(startsAtA.toString(), endsAtA.plusSeconds(1800).toString());
+
+        mockMvc.perform(put("/api/v1/events/{id}", idB)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(collideUpdate))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Resource conflict"))
+                .andExpect(jsonPath("$.details").isNotEmpty())
+                .andExpect(jsonPath("$.path").value("/api/v1/events/" + idB));
+    }
+
 	/*
 	1) Objective
 	- Make ITs rely on Flyway migrations (not Hibernate DDL)
