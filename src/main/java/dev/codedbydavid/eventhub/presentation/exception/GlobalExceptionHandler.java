@@ -123,26 +123,23 @@ public class GlobalExceptionHandler {
                 DataIntegrityViolationException ex,
                 HttpServletRequest request
         ) {
-                Throwable root = ex.getMostSpecificCause();
-
                 String sqlState = null;
                 String constraint = null;
 
-                // Extract SQLState + constraint name in a vendor-agnostic way
-                if (root instanceof org.hibernate.exception.ConstraintViolationException cve) {
-                        SQLException sqlException = cve.getSQLException();
-                        if (sqlException != null) {
+                Throwable cursor = ex;
+                while (cursor != null) {
+                        if (constraint == null && cursor instanceof org.hibernate.exception.ConstraintViolationException cve) {
+                                constraint = cve.getConstraintName();
+                        }
+                        if (sqlState == null && cursor instanceof SQLException sqlException) {
                                 sqlState = sqlException.getSQLState();
                         }
-                        constraint = cve.getConstraintName();
-                } else if (root instanceof SQLException sqlException) {
-                        sqlState = sqlException.getSQLState();
+                        if (sqlState != null && constraint != null) {
+                                break;
+                        }
+                        cursor = cursor.getCause();
                 }
 
-                // Postgres SQLState reference (common ones):
-                // 23505 = unique_violation
-                // 23514 = check_violation
-                // 23502 = not_null_violation
                 HttpStatus status = HttpStatus.BAD_REQUEST;
                 String code = "CONSTRAINT_VIOLATION";
                 String message = "Database constraint violation";
@@ -159,23 +156,18 @@ public class GlobalExceptionHandler {
                                 details = "A unique constraint was violated";
                         }
                 } else if ("23514".equals(sqlState)) {
-                        status = HttpStatus.BAD_REQUEST;
-                        code = "CONSTRAINT_VIOLATION";
-                        message = "Database constraint violation";
                         details = "A check constraint was violated";
                 } else if ("23502".equals(sqlState)) {
-                        status = HttpStatus.BAD_REQUEST;
-                        code = "CONSTRAINT_VIOLATION";
-                        message = "Database constraint violation";
                         details = "A required database field was null";
                 }
 
+                Throwable mostSpecific = ex.getMostSpecificCause();
                 log.warn("Data integrity violation for {} {} (sqlState={}, constraint={}): {}",
                         request.getMethod(),
                         request.getRequestURI(),
                         sqlState,
                         constraint,
-                        root != null ? root.getMessage() : ex.getMessage()
+                        mostSpecific != null ? mostSpecific.getMessage() : ex.getMessage()
                 );
 
                 ErrorResponse errorResponse = new ErrorResponse(
