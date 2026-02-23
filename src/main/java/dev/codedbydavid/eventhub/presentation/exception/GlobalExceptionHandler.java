@@ -17,6 +17,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
+import org.springframework.dao.DataIntegrityViolationException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -112,6 +115,78 @@ public class GlobalExceptionHandler {
                 );
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+
+        // Specific handler (409/400)
+        @ExceptionHandler(DataIntegrityViolationException.class)
+        public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
+                DataIntegrityViolationException ex,
+                HttpServletRequest request
+        ) {
+                Throwable root = ex.getMostSpecificCause();
+
+                String sqlState = null;
+                String constraint = null;
+
+                // Extract SQLState + constraint name in a vendor-agnostic way
+                if (root instanceof org.hibernate.exception.ConstraintViolationException cve) {
+                        SQLException sqlException = cve.getSQLException();
+                        if (sqlException != null) {
+                                sqlState = sqlException.getSQLState();
+                        }
+                        constraint = cve.getConstraintName();
+                } else if (root instanceof SQLException sqlException) {
+                        sqlState = sqlException.getSQLState();
+                }
+
+                // Postgres SQLState reference (common ones):
+                // 23505 = unique_violation
+                // 23514 = check_violation
+                // 23502 = not_null_violation
+                HttpStatus status = HttpStatus.BAD_REQUEST;
+                String code = "CONSTRAINT_VIOLATION";
+                String message = "Database constraint violation";
+                String details = "Request violates a database constraint";
+
+                if ("23505".equals(sqlState)) {
+                        status = HttpStatus.CONFLICT;
+                        code = "CONFLICT";
+                        message = "Resource conflict";
+
+                        if ("uq_events_title_starts_at".equals(constraint)) {
+                                details = "An event with the same title and startsAt already exists";
+                        } else {
+                                details = "A unique constraint was violated";
+                        }
+                } else if ("23514".equals(sqlState)) {
+                        status = HttpStatus.BAD_REQUEST;
+                        code = "CONSTRAINT_VIOLATION";
+                        message = "Database constraint violation";
+                        details = "A check constraint was violated";
+                } else if ("23502".equals(sqlState)) {
+                        status = HttpStatus.BAD_REQUEST;
+                        code = "CONSTRAINT_VIOLATION";
+                        message = "Database constraint violation";
+                        details = "A required database field was null";
+                }
+
+                log.warn("Data integrity violation for {} {} (sqlState={}, constraint={}): {}",
+                        request.getMethod(),
+                        request.getRequestURI(),
+                        sqlState,
+                        constraint,
+                        root != null ? root.getMessage() : ex.getMessage()
+                );
+
+                ErrorResponse errorResponse = new ErrorResponse(
+                        code,
+                        message,
+                        details,
+                        Instant.now(),
+                        request.getRequestURI()
+                );
+
+                return ResponseEntity.status(status).body(errorResponse);
         }
 
         @ExceptionHandler(Exception.class)
