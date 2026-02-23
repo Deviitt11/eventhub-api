@@ -46,16 +46,13 @@ curl -s -X POST http://localhost:8080/api/v1/events \
 	}'
 
 # Copy the "id" from the JSON response and reuse it in the next commands:
-# <id>
-
-# List
-curl -fsS -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events
+# {id}
 
 # Get by id
-curl -fsS -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/<id>
+curl -fsS -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/{id}
 
 # Update
-curl -s -X PUT http://localhost:8080/api/v1/events/<id> \
+curl -s -X PUT http://localhost:8080/api/v1/events/{id} \
 	-H "Content-Type: application/json" \
 	-H "X-Correlation-Id: demo-123" \
 	-d '{
@@ -65,7 +62,7 @@ curl -s -X PUT http://localhost:8080/api/v1/events/<id> \
 	}'
 
 # Delete
-curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/<id>
+curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/{id}
 ```
 
 ---
