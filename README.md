@@ -64,6 +64,7 @@ Errors are returned using a consistent payload shape, for example:
 - `VALIDATION_ERROR` (400)
 - `DOMAIN_VALIDATION_ERROR` (400)
 - `NOT_FOUND` (404)
+- `CONFLICT` (409) — resource conflict (e.g., unique constraint violation / duplicate event)
 
 ---
 
