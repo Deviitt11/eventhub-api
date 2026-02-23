@@ -89,6 +89,8 @@ For design decisions, see: `docs/adr/0001-observability-baseline.md`.
 
 ## Demo (curl)
 
+**Windows PowerShell note:** `curl` is an alias for `Invoke-WebRequest`. Use `curl.exe` or `Invoke-RestMethod` instead.
+
 ### 1) Healthcheck
 ```bash
 curl -i http://localhost:8080/actuator/health
@@ -140,6 +142,32 @@ On Windows PowerShell, `cp` works as well.
 
 ---
 
+## DB & migrations (Flyway)
+
+EventHub uses **Flyway** for schema migrations.
+
+### How migrations run
+- On application startup (profiles `docker` and `dev`), Flyway validates and applies pending migrations from:
+  - `src/main/resources/db/migration/`
+- Migration history is tracked in `flyway_schema_history`.
+
+### Reset DB (start from scratch)
+This will remove containers **and** delete the Postgres volume (all data):
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+### Verify migrations / tables
+
+```bash
+docker compose exec db psql -U eventhub -d eventhub -c "select * from flyway_schema_history order by installed_rank;"
+docker compose exec db psql -U eventhub -d eventhub -c "\dt"
+```
+
+---
+
 ### Local dev (recommended): PostgreSQL in Docker + API on host (dev profile)
 
 ```bash
@@ -165,7 +193,7 @@ docker compose exec db psql -U eventhub -d eventhub -c "select id, title, starts
 
 ### Full Docker (API + DB)
 ```bash
-docker compose --profile full up -d --build
+docker compose up -d --build
 docker compose logs -f api
 ```
 

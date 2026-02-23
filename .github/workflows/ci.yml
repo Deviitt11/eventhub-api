@@ -8,7 +8,10 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: "true"
+      TESTCONTAINERS_CHECKS_DISABLE: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,4 +27,4 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Verify (unit + integration)
-        run: ./gradlew check --no-daemon
+        run: ./gradlew check --no-daemon --stacktrace
