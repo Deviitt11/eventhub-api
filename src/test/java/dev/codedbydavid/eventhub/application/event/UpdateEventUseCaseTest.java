@@ -11,7 +11,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -30,11 +33,13 @@ class UpdateEventUseCaseTest {
     @Mock
     private EventRepository eventRepository;
 
+    private final Clock fixedClock = Clock.fixed(Instant.parse("2024-12-10T09:15:30Z"), ZoneOffset.UTC);
+
     private UpdateEventUseCase updateEventUseCase;
 
     @BeforeEach
     void setUp() {
-        updateEventUseCase = new UpdateEventUseCase(eventRepository);
+        updateEventUseCase = new UpdateEventUseCase(eventRepository, fixedClock);
     }
 
     @Test
@@ -82,8 +87,7 @@ class UpdateEventUseCaseTest {
         assertEquals(existingEvent.getStartsAt(), savedEvent.getStartsAt());
         assertEquals(existingEvent.getEndsAt(), savedEvent.getEndsAt());
         assertEquals(existingEvent.getCreatedAt(), savedEvent.getCreatedAt());
-        assertNotNull(savedEvent.getUpdatedAt());
-        assertTrue(savedEvent.getUpdatedAt().isAfter(originalUpdatedAt));
+        assertEquals(LocalDateTime.now(fixedClock), savedEvent.getUpdatedAt());
 
         assertEquals(savedEvent.getId(), result.getId());
         assertEquals(savedEvent.getTitle(), result.getTitle());
@@ -124,7 +128,7 @@ class UpdateEventUseCaseTest {
         assertEquals(newStartsAt, savedEvent.getStartsAt());
         assertEquals(newEndsAt, savedEvent.getEndsAt());
         assertEquals(createdAt, savedEvent.getCreatedAt());
-        assertTrue(savedEvent.getUpdatedAt().isAfter(originalUpdatedAt));
+        assertEquals(LocalDateTime.now(fixedClock), savedEvent.getUpdatedAt());
         assertEquals(savedEvent.getUpdatedAt(), result.getUpdatedAt());
     }
 
