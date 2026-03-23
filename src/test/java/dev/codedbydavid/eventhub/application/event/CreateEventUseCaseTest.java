@@ -62,9 +62,13 @@ class CreateEventUseCaseTest {
         verify(eventRepository).save(eventCaptor.capture());
         
         Event capturedEvent = eventCaptor.getValue();
+        assertNull(capturedEvent.getId());
         assertEquals(title, capturedEvent.getTitle());
         assertEquals(startsAt, capturedEvent.getStartsAt());
         assertEquals(endsAt, capturedEvent.getEndsAt());
+        assertNotNull(capturedEvent.getCreatedAt());
+        assertNotNull(capturedEvent.getUpdatedAt());
+        assertEquals(capturedEvent.getCreatedAt(), capturedEvent.getUpdatedAt());
     }
 
     @Test
