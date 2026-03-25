@@ -28,3 +28,6 @@ jobs:
 
       - name: Verify (unit + integration)
         run: ./gradlew check --no-daemon --stacktrace
+
+      - name: Verify Docker image build
+        run: docker build -t eventhub-api:test .
