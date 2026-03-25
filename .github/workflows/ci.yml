@@ -12,10 +12,12 @@ jobs:
     env:
       TESTCONTAINERS_RYUK_DISABLED: "true"
       TESTCONTAINERS_CHECKS_DISABLE: "true"
-      POSTGRES_PASSWORD: eventhub_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set CI Compose env
+        run: echo "POSTGRES_PASSWORD=ci-${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
