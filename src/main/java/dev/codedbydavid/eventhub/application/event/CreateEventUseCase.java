@@ -15,7 +15,7 @@ public class CreateEventUseCase {
 
     @Autowired
     public CreateEventUseCase(EventRepository eventRepository) {
-        this(eventRepository, Clock.systemDefaultZone());
+        this(eventRepository, Clock.systemUTC());
     }
 
     CreateEventUseCase(EventRepository eventRepository, Clock clock) {
