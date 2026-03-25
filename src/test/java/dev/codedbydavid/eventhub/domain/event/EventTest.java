@@ -10,53 +10,50 @@ import static org.junit.jupiter.api.Assertions.*;
 class EventTest {
 
     @Test
-    void shouldValidateSuccessfullyWhenEndsAtIsAfterStartsAt() {
-        // Given
-        Event event = Event.builder()
-                .id(UUID.randomUUID())
-                .title("Test Event")
-                .startsAt(LocalDateTime.of(2024, 12, 20, 10, 0))
+    void shouldThrowExceptionWhenStartsAtIsNull() {
+        Event event = baseEventBuilder()
+                .startsAt(null)
                 .endsAt(LocalDateTime.of(2024, 12, 20, 12, 0))
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
 
-        // When & Then
-        assertDoesNotThrow(() -> event.validate());
+        EventValidationException exception = assertThrows(
+                EventValidationException.class,
+                event::validate
+        );
+
+        assertEquals("startsAt is required", exception.getMessage());
+    }
+
+    @Test
+    void shouldValidateSuccessfullyWhenEndsAtIsAfterStartsAt() {
+        Event event = baseEventBuilder()
+                .startsAt(LocalDateTime.of(2024, 12, 20, 10, 0))
+                .endsAt(LocalDateTime.of(2024, 12, 20, 12, 0))
+                .build();
+
+        assertDoesNotThrow(event::validate);
     }
 
     @Test
     void shouldValidateSuccessfullyWhenEndsAtIsNull() {
-        // Given
-        Event event = Event.builder()
-                .id(UUID.randomUUID())
-                .title("Test Event")
+        Event event = baseEventBuilder()
                 .startsAt(LocalDateTime.of(2024, 12, 20, 10, 0))
                 .endsAt(null)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
 
-        // When & Then
-        assertDoesNotThrow(() -> event.validate());
+        assertDoesNotThrow(event::validate);
     }
 
     @Test
     void shouldThrowExceptionWhenEndsAtIsBeforeStartsAt() {
-        // Given
-        Event event = Event.builder()
-                .id(UUID.randomUUID())
-                .title("Test Event")
+        Event event = baseEventBuilder()
                 .startsAt(LocalDateTime.of(2024, 12, 20, 12, 0))
                 .endsAt(LocalDateTime.of(2024, 12, 20, 10, 0))
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
 
-        // When & Then
         EventValidationException exception = assertThrows(
                 EventValidationException.class,
-                () -> event.validate()
+                event::validate
         );
 
         assertTrue(exception.getMessage().contains("endsAt must be after startsAt"));
@@ -64,24 +61,26 @@ class EventTest {
 
     @Test
     void shouldThrowExceptionWhenEndsAtEqualsStartsAt() {
-        // Given
         LocalDateTime sameTime = LocalDateTime.of(2024, 12, 20, 10, 0);
-        Event event = Event.builder()
-                .id(UUID.randomUUID())
-                .title("Test Event")
+        Event event = baseEventBuilder()
                 .startsAt(sameTime)
                 .endsAt(sameTime)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
 
-        // When & Then
         EventValidationException exception = assertThrows(
                 EventValidationException.class,
-                () -> event.validate()
+                event::validate
         );
 
         assertTrue(exception.getMessage().contains("endsAt must be after startsAt"));
+    }
+
+    private Event.Builder baseEventBuilder() {
+        return Event.builder()
+                .id(UUID.randomUUID())
+                .title("Test Event")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now());
     }
 }
 

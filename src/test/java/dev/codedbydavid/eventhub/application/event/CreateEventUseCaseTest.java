@@ -10,7 +10,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,11 +27,13 @@ class CreateEventUseCaseTest {
     @Mock
     private EventRepository eventRepository;
 
+    private final Clock fixedClock = Clock.fixed(Instant.parse("2024-12-10T09:15:30Z"), ZoneOffset.UTC);
+
     private CreateEventUseCase createEventUseCase;
 
     @BeforeEach
     void setUp() {
-        createEventUseCase = new CreateEventUseCase(eventRepository);
+        createEventUseCase = new CreateEventUseCase(eventRepository, fixedClock);
     }
 
     @Test
@@ -43,8 +48,8 @@ class CreateEventUseCaseTest {
                 .title(title)
                 .startsAt(startsAt)
                 .endsAt(endsAt)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(fixedClock))
+                .updatedAt(LocalDateTime.now(fixedClock))
                 .build();
 
         when(eventRepository.save(any(Event.class))).thenReturn(savedEvent);
@@ -62,9 +67,12 @@ class CreateEventUseCaseTest {
         verify(eventRepository).save(eventCaptor.capture());
         
         Event capturedEvent = eventCaptor.getValue();
+        assertNull(capturedEvent.getId());
         assertEquals(title, capturedEvent.getTitle());
         assertEquals(startsAt, capturedEvent.getStartsAt());
         assertEquals(endsAt, capturedEvent.getEndsAt());
+        assertEquals(LocalDateTime.now(fixedClock), capturedEvent.getCreatedAt());
+        assertEquals(LocalDateTime.now(fixedClock), capturedEvent.getUpdatedAt());
     }
 
     @Test
@@ -111,8 +119,8 @@ class CreateEventUseCaseTest {
                 .title(title)
                 .startsAt(startsAt)
                 .endsAt(null)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(fixedClock))
+                .updatedAt(LocalDateTime.now(fixedClock))
                 .build();
 
         when(eventRepository.save(any(Event.class))).thenReturn(savedEvent);
