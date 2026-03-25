@@ -72,7 +72,7 @@ Errors are returned using a consistent payload shape, for example:
 
 Once the app is running, Swagger UI is available at:
 
-- **Swagger UI:** `http://localhost:8080/swagger-ui/index.html`
+- **Swagger UI:** `http://localhost:8080/swagger-ui.html`
 - **OpenAPI JSON:** `http://localhost:8080/api-docs`
 
 ---
@@ -129,8 +129,8 @@ curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/e
 ## Getting Started
 
 ### Prerequisites
-- Docker + Docker Compose (recommended for local development with PostgreSQL)
-- Java 21 (only needed if you want to run the API locally outside Docker)
+- Docker with Compose support
+- Java 21
 
 ### Environment
 Copy `.env.example` to `.env` and adjust values if needed:
@@ -143,78 +143,40 @@ On Windows PowerShell, `cp` works as well.
 
 ---
 
-## DB & migrations (Flyway)
+## Supported Local Flows
 
-EventHub uses **Flyway** for schema migrations.
+EventHub uses **Flyway** for schema migrations. On application startup, the `dev` and `docker` profiles validate and apply migrations from `src/main/resources/db/migration/`, tracking state in `flyway_schema_history`.
 
-### How migrations run
-- On application startup (profiles `docker` and `dev`), Flyway validates and applies pending migrations from:
-  - `src/main/resources/db/migration/`
-- Migration history is tracked in `flyway_schema_history`.
-
-### Reset DB (start from scratch)
-This will remove containers **and** delete the Postgres volume (all data):
-
-```bash
-docker compose down -v
-docker compose up --build
-```
-
-### Verify migrations / tables
-
-```bash
-docker compose exec db psql -U eventhub -d eventhub -c "select * from flyway_schema_history order by installed_rank;"
-docker compose exec db psql -U eventhub -d eventhub -c "\dt"
-```
-
----
-
-### Local dev (recommended): PostgreSQL in Docker + API on host (dev profile)
+### Host API + Compose DB (recommended)
 
 ```bash
 docker compose up -d db
 ./gradlew bootRun --args="--spring.profiles.active=dev"
 ```
-**Note**: The default runtime is PostgreSQL via profiles (`dev` / `docker`). H2 is used only for unit tests.
+This runs the API on the host with the `dev` profile against PostgreSQL on `localhost:5432`. H2 remains test-only.
 
-Verify migrations / tables:
-
-```bash
-docker compose exec db psql -U eventhub -d eventhub -c "\dt"
-docker compose exec db psql -U eventhub -d eventhub -c "\d events"
-```
-
-Check inserted rows:
-
-```bash
-docker compose exec db psql -U eventhub -d eventhub -c "select id, title, starts_at, ends_at, created_at from events order by created_at desc limit 20;"
-```
-
----
-
-### Full Docker (API + DB)
+### Full Compose stack
 ```bash
 docker compose up -d --build
-docker compose logs -f api
 ```
 
----
+This builds the API image from the repository `Dockerfile`, starts the API with the `docker` profile, and waits for the database healthcheck before starting the app.
 
 ### Useful URLs
 
-- Swagger UI: http://localhost:8080/swagger-ui/index.html
+- Swagger UI: http://localhost:8080/swagger-ui.html
 - OpenAPI JSON: http://localhost:8080/api-docs
 - Health: http://localhost:8080/actuator/health
 
 ### Stop and cleanup
 ```bash
 docker compose down
-```
-
-If you also want to remove volumes (database data):
-```bash
 docker compose down -v
 ```
+
+Use `down -v` only when you intentionally want to wipe local Postgres data.
+
+For manual validation commands, DB inspection, and smoke steps, use `docs/runbook.md`.
 
 ---
 
@@ -249,6 +211,8 @@ Notes:
 
 GitHub Actions runs:
 - `./gradlew check`
+- `docker compose config`
+- `docker compose up -d --build` plus an actuator smoke check
 
 on:
 - pull requests to `develop` and `main`

@@ -2,108 +2,89 @@
 
 **Windows PowerShell note:** `curl` is an alias for `Invoke-WebRequest`. Use `curl.exe` or `Invoke-RestMethod`.
 
-Goal: verify end-to-end (Swagger/curl) and prove Flyway-managed persistence.
-DoD: step-by-step commands documented + DB verification queries.
+Goal: validate the two supported local flows and confirm Flyway-managed persistence without deviating from CI-supported behavior.
 
-## A) Daily (API on host + DB via Docker Compose) — recommended
+## 0) Prerequisites
 
-### 0) Clean slate (only when you want a fresh DB)
-```bash
-docker compose down -v
-```
+- Copy `.env.example` to `.env`.
+- Set a non-empty `POSTGRES_PASSWORD`.
+- Keep Docker running before using Compose or Gradle integration checks.
 
-### 1) Start DB
+## A) Recommended daily flow: API on host + DB via Compose
+
+### 1) Start only PostgreSQL
 ```bash
 docker compose up -d db
 ```
 
-### 2) Verify DB
-```bash
-docker compose ps
-docker compose logs -f db
-```
-
-### 3) Run API locally (dev profile)
+### 2) Run the API locally with the dev profile
 ```bash
 ./gradlew bootRun --args="--spring.profiles.active=dev"
 ```
 
-### 4) Smoke (Actuator)
-```bash
-curl -fsS http://localhost:8080/actuator/health
-```
-
-### 5) CRUD smoke (curl) — create → list → get → update → delete
-```bash
-# Create
-curl -s -X POST http://localhost:8080/api/v1/events \
-	-H "Content-Type: application/json" \
-	-H "X-Correlation-Id: demo-123" \
-	-d '{
-		"title": "My Event",
-		"startsAt": "2030-01-01T10:00:00Z",
-		"endsAt": "2030-01-01T11:00:00Z"
-	}'
-
-# Copy the "id" from the JSON response and reuse it in the next commands:
-# {id}
-
-# Get by id
-curl -fsS -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/{id}
-
-# Update
-curl -s -X PUT http://localhost:8080/api/v1/events/{id} \
-	-H "Content-Type: application/json" \
-	-H "X-Correlation-Id: demo-123" \
-	-d '{
-		"title": "My Event Updated",
-		"startsAt": "2030-01-01T10:00:00Z",
-		"endsAt": "2030-01-01T12:00:00Z"
-	}'
-
-# Delete
-curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events/{id}
-```
-
----
-
-## B) All Docker (API + DB via Compose)
-
-```bash
-docker compose up -d --build
-docker compose logs -f api
-```
-
-Smoke:
-
+### 3) Smoke the running app
 ```bash
 curl.exe -fsS http://localhost:8080/actuator/health
+curl.exe -fsS http://localhost:8080/api-docs
 ```
 
----
-
-## C) Reset clean (wipe DB data)
+### 4) Optional CRUD smoke
 ```bash
-docker compose down -v
+curl.exe -s -X POST http://localhost:8080/api/v1/events \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: demo-123" \
+  -d '{
+    "title": "My Event",
+    "startsAt": "2030-01-01T10:00:00Z",
+    "endsAt": "2030-01-01T11:00:00Z"
+  }'
 ```
 
 ---
 
-## D) Verify migrations / tables (Flyway)
+## B) Full Compose stack: API + DB
+
+### 1) Build and start the stack
+```bash
+docker compose up -d --build
+```
+
+### 2) Smoke the containerized app
+```bash
+curl.exe -fsS http://localhost:8080/actuator/health
+curl.exe -fsS http://localhost:8080/api-docs
+```
+
+### 3) Inspect service state if needed
+```bash
+docker compose ps
+docker compose logs --no-color api
+```
+
+---
+
+## C) Flyway / persistence sanity checks
+
+These checks are useful after either flow A or B.
 
 ### List tables
 ```bash
 docker compose exec db psql -U eventhub -d eventhub -c "\dt"
 ```
 
-### Describe events table
+### Inspect Flyway history
+```bash
+docker compose exec db psql -U eventhub -d eventhub -c "select installed_rank, version, description, type, script, checksum, installed_on, success from flyway_schema_history order by installed_rank;"
+```
+
+### Inspect the `events` table
 ```bash
 docker compose exec db psql -U eventhub -d eventhub -c "\d events"
 ```
 
-### Flyway history (prove Flyway applied migrations)
+### Check inserted rows (top 20)
 ```bash
-docker compose exec db psql -U eventhub -d eventhub -c "select installed_rank, version, description, type, script, checksum, installed_on, success from flyway_schema_history order by installed_rank;"
+docker compose exec db psql -U eventhub -d eventhub -c "select id, title, starts_at, ends_at, created_at from events order by created_at desc limit 20;"
 ```
 
 Expected:
@@ -112,42 +93,45 @@ Expected:
 - at least one row with _version = '1'_ (or similar) for `V1__create_events_table.sql`
 - _success = true_
 
-### Check inserted rows (top 20)
-
-```bash
-docker compose exec db psql -U eventhub -d eventhub -c "select id, title, starts_at, ends_at, created_at from events order by created_at desc limit 20;"
-```
-
 ---
 
-## E) Tests
+## D) CI-aligned validation commands
 
-**Notes**:
-- `./gradlew test` runs fast unit tests using **H2 in-memory** (no Docker required).
-- `./gradlew integrationTest` runs against **PostgreSQL Testcontainers** (Docker required).
+Run the same command families that the repository expects locally:
 
 ```bash
-./gradlew test
-./gradlew integrationTest
+docker compose up -d db
+./gradlew bootRun --args="--spring.profiles.active=dev"
+docker compose up -d --build
 ./gradlew check
 ```
 
-If Gradle says tasks are UP-TO-DATE and you want a fresh run:
+Additional CI-specific sanity check:
+
 ```bash
-./gradlew integrationTest --rerun-tasks
+docker compose config
 ```
 
-If daemons get weird (e.g., JVM mismatch):
+What to confirm manually:
+
+- `bootRun` with `dev` connects to `localhost:5432` and serves `/actuator/health`.
+- `docker compose up -d --build` brings up both `db` and `api`, and the API becomes healthy on port `8080`.
+- `./gradlew check` completes with Docker available for Testcontainers.
+
+---
+
+## E) Cleanup
+
 ```bash
-./gradlew --stop
+docker compose down
+docker compose down -v
 ```
+
+Use `down -v` only when you intentionally want to wipe database data.
 
 ---
 
 ## Notes
 
-### Why _docker logs -f eventhub-api_ failed
-
-- That command needs the exact container name.
-- Compose generates names like _eventhub-api-api-1_.
-- Prefer: _docker compose logs -f api_ (service-based, stable).
+- Prefer `docker compose logs ...` over container-name-based `docker logs ...`; service names are stable.
+- The canonical Swagger UI path from the current Springdoc config is `/swagger-ui.html`.
