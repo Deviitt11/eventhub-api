@@ -12,6 +12,7 @@ jobs:
     env:
       TESTCONTAINERS_RYUK_DISABLED: "true"
       TESTCONTAINERS_CHECKS_DISABLE: "true"
+      POSTGRES_PASSWORD: eventhub_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,5 +30,19 @@ jobs:
       - name: Verify (unit + integration)
         run: ./gradlew check --no-daemon --stacktrace
 
-      - name: Verify Docker image build
-        run: docker build -t eventhub-api:test .
+      - name: Verify Docker Compose config
+        run: docker compose config
+
+      - name: Smoke Docker Compose stack
+        run: |
+          docker compose up -d --build
+          docker compose ps
+          timeout 120 bash -c 'until curl -fsS http://localhost:8080/actuator/health; do sleep 5; done'
+
+      - name: Dump API logs
+        if: always()
+        run: docker compose logs --no-color api
+
+      - name: Tear down Docker Compose stack
+        if: always()
+        run: docker compose down -v

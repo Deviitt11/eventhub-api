@@ -70,14 +70,22 @@ curl -i -X DELETE -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/e
 ## B) All Docker (API + DB via Compose)
 
 ```bash
+docker compose config
 docker compose up -d --build
-docker compose logs -f api
+docker compose ps
+docker compose logs --no-color api
 ```
 
 Smoke:
 
 ```bash
 curl.exe -fsS http://localhost:8080/actuator/health
+```
+
+Cleanup:
+
+```bash
+docker compose down
 ```
 
 ---
