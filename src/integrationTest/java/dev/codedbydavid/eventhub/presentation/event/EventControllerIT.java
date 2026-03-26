@@ -303,6 +303,105 @@ class EventControllerIT {
     }
 
     @Test
+    void list_events_without_filters_keeps_default_ordering_and_returns_all_matching_test_events() throws Exception {
+        String uniqueSuffix = UUID.randomUUID().toString();
+
+        createEvent("No Filter Event Late " + uniqueSuffix,
+                Instant.parse("2031-07-01T12:00:00Z"),
+                Instant.parse("2031-07-01T13:00:00Z"));
+        createEvent("No Filter Event Early " + uniqueSuffix,
+                Instant.parse("2031-07-01T09:00:00Z"),
+                Instant.parse("2031-07-01T10:00:00Z"));
+        createEvent("No Filter Event Boundary " + uniqueSuffix,
+                Instant.parse("2031-07-01T10:00:00Z"),
+                Instant.parse("2031-07-01T11:00:00Z"));
+
+        String responseBody = mockMvc.perform(get("/api/v1/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode events = objectMapper.readTree(responseBody);
+        List<String> orderedTitles = events.findValuesAsText("title").stream()
+                .filter(title -> title.endsWith(uniqueSuffix))
+                .toList();
+
+        assertThat(orderedTitles).containsExactly(
+                "No Filter Event Early " + uniqueSuffix,
+                "No Filter Event Boundary " + uniqueSuffix,
+                "No Filter Event Late " + uniqueSuffix);
+    }
+
+    @Test
+    void list_events_with_startsAt_filters_reduces_results() throws Exception {
+        String uniqueSuffix = UUID.randomUUID().toString();
+
+        createEvent("Filtered Event Early " + uniqueSuffix,
+                Instant.parse("2032-08-01T08:00:00Z"),
+                Instant.parse("2032-08-01T09:00:00Z"));
+        createEvent("Filtered Event Match " + uniqueSuffix,
+                Instant.parse("2032-08-01T10:00:00Z"),
+                Instant.parse("2032-08-01T11:00:00Z"));
+        createEvent("Filtered Event Late " + uniqueSuffix,
+                Instant.parse("2032-08-01T12:00:00Z"),
+                Instant.parse("2032-08-01T13:00:00Z"));
+
+        String responseBody = mockMvc.perform(get("/api/v1/events")
+                        .param("startsAtFrom", "2032-08-01T09:30:00Z")
+                        .param("startsAtTo", "2032-08-01T10:30:00Z"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode events = objectMapper.readTree(responseBody);
+        List<String> filteredTitles = events.findValuesAsText("title").stream()
+                .filter(title -> title.endsWith(uniqueSuffix))
+                .toList();
+
+        assertThat(filteredTitles).containsExactly("Filtered Event Match " + uniqueSuffix);
+    }
+
+    @Test
+    void list_events_with_inclusive_startsAt_limits_includes_boundary_values() throws Exception {
+        String uniqueSuffix = UUID.randomUUID().toString();
+
+        createEvent("Boundary Event Before " + uniqueSuffix,
+                Instant.parse("2033-09-01T09:59:59Z"),
+                Instant.parse("2033-09-01T10:30:00Z"));
+        createEvent("Boundary Event Start " + uniqueSuffix,
+                Instant.parse("2033-09-01T10:00:00Z"),
+                Instant.parse("2033-09-01T11:00:00Z"));
+        createEvent("Boundary Event End " + uniqueSuffix,
+                Instant.parse("2033-09-01T11:00:00Z"),
+                Instant.parse("2033-09-01T12:00:00Z"));
+        createEvent("Boundary Event After " + uniqueSuffix,
+                Instant.parse("2033-09-01T11:00:01Z"),
+                Instant.parse("2033-09-01T12:30:00Z"));
+
+        String responseBody = mockMvc.perform(get("/api/v1/events")
+                        .param("startsAtFrom", "2033-09-01T10:00:00Z")
+                        .param("startsAtTo", "2033-09-01T11:00:00Z"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode events = objectMapper.readTree(responseBody);
+        List<String> filteredTitles = events.findValuesAsText("title").stream()
+                .filter(title -> title.endsWith(uniqueSuffix))
+                .toList();
+
+        assertThat(filteredTitles).containsExactly(
+                "Boundary Event Start " + uniqueSuffix,
+                "Boundary Event End " + uniqueSuffix);
+    }
+
+    @Test
     void update_to_collide_with_existing_event_returns_409_conflict() throws Exception {
         Instant startsAtA = Instant.now().plusSeconds(3600);
         Instant endsAtA = startsAtA.plusSeconds(3600);

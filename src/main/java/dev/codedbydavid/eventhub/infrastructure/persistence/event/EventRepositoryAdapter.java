@@ -5,6 +5,7 @@ import dev.codedbydavid.eventhub.domain.event.EventNotFoundException;
 import dev.codedbydavid.eventhub.domain.event.EventRepository;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,6 +53,29 @@ public class EventRepositoryAdapter implements EventRepository {
     @Override
     public List<Event> findAll() {
         return jpaRepository.findAllByOrderByStartsAtAscIdAsc().stream()
+                .map(this::toDomainEntity)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Event> findAll(LocalDateTime startsAtFrom, LocalDateTime startsAtTo) {
+        if (startsAtFrom == null && startsAtTo == null) {
+            return findAll();
+        }
+
+        if (startsAtFrom == null) {
+            return jpaRepository.findAllByStartsAtLessThanEqualOrderByStartsAtAscIdAsc(startsAtTo).stream()
+                    .map(this::toDomainEntity)
+                    .collect(Collectors.toList());
+        }
+
+        if (startsAtTo == null) {
+            return jpaRepository.findAllByStartsAtGreaterThanEqualOrderByStartsAtAscIdAsc(startsAtFrom).stream()
+                    .map(this::toDomainEntity)
+                    .collect(Collectors.toList());
+        }
+
+        return jpaRepository.findAllByStartsAtBetweenOrderByStartsAtAscIdAsc(startsAtFrom, startsAtTo).stream()
                 .map(this::toDomainEntity)
                 .collect(Collectors.toList());
     }

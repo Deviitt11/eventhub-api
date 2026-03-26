@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -82,8 +83,12 @@ public class EventController {
         @Operation(summary = "List all events")
         @ApiResponse(responseCode = "200", description = "List of events")
         @GetMapping
-        public ResponseEntity<List<EventResponse>> listEvents() {
-                List<Event> events = listEventsUseCase.execute();
+        public ResponseEntity<List<EventResponse>> listEvents(
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) java.time.Instant startsAtFrom,
+                        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) java.time.Instant startsAtTo) {
+                List<Event> events = listEventsUseCase.execute(
+                                startsAtFrom != null ? LocalDateTime.ofInstant(startsAtFrom, ZoneOffset.UTC) : null,
+                                startsAtTo != null ? LocalDateTime.ofInstant(startsAtTo, ZoneOffset.UTC) : null);
                 List<EventResponse> responses = events.stream()
                                 .map(this::toResponse)
                                 .collect(Collectors.toList());
