@@ -4,6 +4,7 @@ import dev.codedbydavid.eventhub.domain.event.Event;
 import dev.codedbydavid.eventhub.domain.event.EventRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -16,6 +17,10 @@ public class ListEventsUseCase {
 
     public List<Event> execute() {
         return eventRepository.findAll();
+    }
+
+    public List<Event> execute(LocalDateTime startsAtFrom, LocalDateTime startsAtTo) {
+        return eventRepository.findAll(startsAtFrom, startsAtTo);
     }
 }
 

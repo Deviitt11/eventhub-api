@@ -107,6 +107,13 @@ curl -i -H "X-Correlation-Id: demo-123" http://localhost:8080/api/v1/events
 curl -i http://localhost:8080/api/v1/events
 ```
 
+List events with optional filters:
+```bash
+curl -i "http://localhost:8080/api/v1/events?startsAtFrom=2030-01-01T09:00:00Z&startsAtTo=2030-01-01T18:00:00Z"
+```
+
+If a filter is malformed or `startsAtFrom` is after `startsAtTo`, the API returns the standard `400` error payload.
+
 ### 4) Minimal E2E (create → fetch → delete)
 ```bash
 # create
