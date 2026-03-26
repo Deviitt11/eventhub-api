@@ -20,8 +20,14 @@ public class OpenApiConfig {
             }
 
             openApi.getPaths().forEach((path, item) -> {
-                for (Operation op : item.readOperations()) {
+                if ("/api/v1/events".equals(path) && item.getGet() != null) {
+                    addListEventsQueryParameter(item.getGet(), "startsAtFrom",
+                            "Inclusive lower bound for event start time in ISO-8601 UTC format.");
+                    addListEventsQueryParameter(item.getGet(), "startsAtTo",
+                            "Inclusive upper bound for event start time in ISO-8601 UTC format.");
+                }
 
+                for (Operation op : item.readOperations()) {
                     boolean alreadyPresent = op.getParameters() != null
                             && op.getParameters().stream().anyMatch(p ->
                             "header".equalsIgnoreCase(p.getIn())
@@ -43,5 +49,28 @@ public class OpenApiConfig {
                 }
             });
         };
+    }
+
+    private void addListEventsQueryParameter(Operation op, String name, String description) {
+        boolean alreadyPresent = op.getParameters() != null
+                && op.getParameters().stream().anyMatch(p ->
+                "query".equalsIgnoreCase(p.getIn())
+                        && name.equalsIgnoreCase(p.getName())
+        );
+
+        if (alreadyPresent) {
+            return;
+        }
+
+        Parameter queryParameter = new Parameter()
+                .in("query")
+                .name(name)
+                .description(description)
+                .required(false)
+                .schema(new StringSchema()
+                        .format("date-time")
+                        .example("2030-01-01T10:00:00Z"));
+
+        op.addParametersItem(queryParameter);
     }
 }

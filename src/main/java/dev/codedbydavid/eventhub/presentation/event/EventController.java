@@ -6,9 +6,14 @@ import dev.codedbydavid.eventhub.application.event.GetEventUseCase;
 import dev.codedbydavid.eventhub.application.event.ListEventsUseCase;
 import dev.codedbydavid.eventhub.application.event.UpdateEventUseCase;
 import dev.codedbydavid.eventhub.domain.event.Event;
+import dev.codedbydavid.eventhub.domain.event.EventValidationException;
 import dev.codedbydavid.eventhub.presentation.event.dto.CreateEventRequest;
 import dev.codedbydavid.eventhub.presentation.event.dto.EventResponse;
 import dev.codedbydavid.eventhub.presentation.event.dto.UpdateEventRequest;
+import dev.codedbydavid.eventhub.presentation.exception.ErrorResponse;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -81,11 +86,15 @@ public class EventController {
         }
 
         @Operation(summary = "List all events")
-        @ApiResponse(responseCode = "200", description = "List of events")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "List of events", content = @Content(array = @ArraySchema(schema = @Schema(implementation = EventResponse.class)))),
+                        @ApiResponse(responseCode = "400", description = "Invalid query parameters", content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+        })
         @GetMapping
         public ResponseEntity<List<EventResponse>> listEvents(
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) java.time.Instant startsAtFrom,
                         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) java.time.Instant startsAtTo) {
+                validateStartsAtRange(startsAtFrom, startsAtTo);
                 List<Event> events = listEventsUseCase.execute(
                                 startsAtFrom != null ? LocalDateTime.ofInstant(startsAtFrom, ZoneOffset.UTC) : null,
                                 startsAtTo != null ? LocalDateTime.ofInstant(startsAtTo, ZoneOffset.UTC) : null);
@@ -135,5 +144,11 @@ public class EventController {
                                 event.getEndsAt(),
                                 event.getCreatedAt(),
                                 event.getUpdatedAt());
+        }
+
+        private void validateStartsAtRange(java.time.Instant startsAtFrom, java.time.Instant startsAtTo) {
+                if (startsAtFrom != null && startsAtTo != null && startsAtFrom.isAfter(startsAtTo)) {
+                        throw new EventValidationException("startsAtFrom must be before or equal to startsAtTo");
+                }
         }
 }

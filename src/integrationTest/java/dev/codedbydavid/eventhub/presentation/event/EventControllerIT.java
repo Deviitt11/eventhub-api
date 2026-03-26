@@ -34,6 +34,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.not;
 
@@ -399,6 +400,30 @@ class EventControllerIT {
         assertThat(filteredTitles).containsExactly(
                 "Boundary Event Start " + uniqueSuffix,
                 "Boundary Event End " + uniqueSuffix);
+    }
+
+    @Test
+    void list_events_with_malformed_query_param_returns_400_standard_payload() throws Exception {
+        mockMvc.perform(get("/api/v1/events")
+                        .param("startsAtFrom", "not-a-date"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.details", containsString("startsAtFrom")))
+                .andExpect(jsonPath("$.details", containsString("Expected ISO-8601 date-time")))
+                .andExpect(jsonPath("$.path").value("/api/v1/events"));
+    }
+
+    @Test
+    void list_events_with_invalid_range_returns_400_standard_payload() throws Exception {
+        mockMvc.perform(get("/api/v1/events")
+                        .param("startsAtFrom", "2034-01-01T12:00:00Z")
+                        .param("startsAtTo", "2034-01-01T10:00:00Z"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("DOMAIN_VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message").value("Event validation failed"))
+                .andExpect(jsonPath("$.details").value("startsAtFrom must be before or equal to startsAtTo"))
+                .andExpect(jsonPath("$.path").value("/api/v1/events"));
     }
 
     @Test

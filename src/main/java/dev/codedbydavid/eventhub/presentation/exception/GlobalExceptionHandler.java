@@ -10,6 +10,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.stream.Collectors;
@@ -78,6 +79,30 @@ public class GlobalExceptionHandler {
                 ErrorResponse errorResponse = new ErrorResponse(
                                 "VALIDATION_ERROR",
                                 "Constraint validation failed",
+                                details,
+                                Instant.now(),
+                                request.getRequestURI());
+
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+
+        @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+        public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
+                        MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+                String parameterName = ex.getName();
+                Object rejectedValue = ex.getValue();
+                String details = "%s: invalid value '%s'. Expected ISO-8601 date-time (e.g., 2030-01-01T10:00:00Z)"
+                                .formatted(parameterName, rejectedValue);
+
+                log.warn("Invalid request parameter for {} {}: {}={}",
+                                request.getMethod(),
+                                request.getRequestURI(),
+                                parameterName,
+                                rejectedValue);
+
+                ErrorResponse errorResponse = new ErrorResponse(
+                                "VALIDATION_ERROR",
+                                "Validation failed",
                                 details,
                                 Instant.now(),
                                 request.getRequestURI());
