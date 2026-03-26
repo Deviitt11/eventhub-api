@@ -51,7 +51,7 @@ public class EventRepositoryAdapter implements EventRepository {
 
     @Override
     public List<Event> findAll() {
-        return jpaRepository.findAll().stream()
+        return jpaRepository.findAllByOrderByStartsAtAscIdAsc().stream()
                 .map(this::toDomainEntity)
                 .collect(Collectors.toList());
     }

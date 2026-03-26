@@ -29,6 +29,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -270,6 +271,38 @@ class EventControllerIT {
     }
 
     @Test
+    void list_events_returns_events_sorted_by_startsAt_ascending_with_stable_tie_breaker() throws Exception {
+        String uniqueSuffix = UUID.randomUUID().toString();
+
+        createEvent("Ordered Event Late " + uniqueSuffix,
+                Instant.parse("2030-06-01T12:00:00Z"),
+                Instant.parse("2030-06-01T13:00:00Z"));
+        createEvent("Ordered Event Early " + uniqueSuffix,
+                Instant.parse("2030-06-01T09:00:00Z"),
+                Instant.parse("2030-06-01T10:00:00Z"));
+        createEvent("Ordered Event Middle " + uniqueSuffix,
+                Instant.parse("2030-06-01T10:30:00Z"),
+                Instant.parse("2030-06-01T11:30:00Z"));
+
+        String responseBody = mockMvc.perform(get("/api/v1/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode events = objectMapper.readTree(responseBody);
+        List<String> orderedTitles = events.findValuesAsText("title").stream()
+                .filter(title -> title.endsWith(uniqueSuffix))
+                .toList();
+
+        assertThat(orderedTitles).containsExactly(
+                "Ordered Event Early " + uniqueSuffix,
+                "Ordered Event Middle " + uniqueSuffix,
+                "Ordered Event Late " + uniqueSuffix);
+    }
+
+    @Test
     void update_to_collide_with_existing_event_returns_409_conflict() throws Exception {
         Instant startsAtA = Instant.now().plusSeconds(3600);
         Instant endsAtA = startsAtA.plusSeconds(3600);
@@ -328,6 +361,21 @@ class EventControllerIT {
                 .andExpect(jsonPath("$.message").value("Resource conflict"))
                 .andExpect(jsonPath("$.details").isNotEmpty())
                 .andExpect(jsonPath("$.path").value("/api/v1/events/" + idB));
+    }
+
+    private void createEvent(String title, Instant startsAt, Instant endsAt) throws Exception {
+        String json = """
+		{
+			"title": "%s",
+			"startsAt": "%s",
+			"endsAt": "%s"
+		}
+		""".formatted(title, startsAt.toString(), endsAt.toString());
+
+        mockMvc.perform(post("/api/v1/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isCreated());
     }
 
 	/*
