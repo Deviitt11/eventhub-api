@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
+import java.time.temporal.TemporalAccessor;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -91,8 +93,7 @@ public class GlobalExceptionHandler {
                         MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
                 String parameterName = ex.getName();
                 Object rejectedValue = ex.getValue();
-                String details = "%s: invalid value '%s'. Expected ISO-8601 date-time (e.g., 2030-01-01T10:00:00Z)"
-                                .formatted(parameterName, rejectedValue);
+                String details = buildTypeMismatchDetails(parameterName, rejectedValue, ex.getRequiredType());
 
                 log.warn("Invalid request parameter for {} {}: {}={}",
                                 request.getMethod(),
@@ -108,6 +109,24 @@ public class GlobalExceptionHandler {
                                 request.getRequestURI());
 
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        }
+
+        private String buildTypeMismatchDetails(String parameterName, Object rejectedValue, Class<?> requiredType) {
+                if (requiredType != null) {
+                        if (TemporalAccessor.class.isAssignableFrom(requiredType)) {
+                                return "%s: invalid value '%s'. Expected ISO-8601 date-time (e.g., 2030-01-01T10:00:00Z)"
+                                                .formatted(parameterName, rejectedValue);
+                        }
+
+                        if (UUID.class.isAssignableFrom(requiredType)) {
+                                return "%s: invalid value '%s'. Expected UUID".formatted(parameterName, rejectedValue);
+                        }
+
+                        return "%s: invalid value '%s'. Expected %s"
+                                        .formatted(parameterName, rejectedValue, requiredType.getSimpleName());
+                }
+
+                return "%s: invalid value '%s'".formatted(parameterName, rejectedValue);
         }
 
         @ExceptionHandler(HttpMessageNotReadableException.class)
