@@ -1,5 +1,6 @@
 # Local-only planning docs
 context/
+docs/_local/
 
 # Local env files
 .env*
